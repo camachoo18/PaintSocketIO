@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>Socket.IO chat</title>
+    <style>
+      body { margin: 0; padding-bottom: 3rem; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+
+      #form { background: rgba(0, 0, 0, 0.15); padding: 0.25rem; position: fixed; bottom: 0; left: 0; right: 0; display: flex; height: 3rem; box-sizing: border-box; backdrop-filter: blur(10px); }
+      #input { border: none; padding: 0 1rem; flex-grow: 1; border-radius: 2rem; margin: 0.25rem; }
+      #input:focus { outline: none; }
+      #form > button { background: #333; border: none; padding: 0 1rem; margin: 0.25rem; border-radius: 3px; outline: none; color: #fff; }
+
+      #messages { list-style-type: none; margin: 0; padding: 0; }
+      #messages > li { padding: 0.5rem 1rem; }
+      #messages > li:nth-child(odd) { background: #efefef; }
+
+      
+      
+      canvas { 
+        display: block;
+        position: fixed;
+        top: 0;
+        left: 0;
+      }
+      
+      #brushSizeLabel {
+  margin-right: 0.5rem;
+  position: absolute;
+  bottom: 3rem; 
+  left: 0;
+}
+
+#brushSizeInput {
+  margin-right: 1rem;
+  position: absolute;
+  bottom: 3rem; 
+  left: 140px; 
+}
+
+    </style>
+  </head>
+  <body>
+    <ul id="messages"></ul>
+    <form id="form" action="">
+      <input id="input" autocomplete="off" /><button>Send</button>
+    </form>
+    
+    
+    <div>
+      <label for="brushSizeInput" id="brushSizeLabel">Tamaño del pincel:</label>
+      <input type="range" id="brushSizeInput" min="1" max="100" value="50"onchange="getRange()">
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
+    <script>
+      const socket = io();
+      let pincelSize = 10; // Tamaño inicial del pincel
+    
+      const form = document.getElementById('form');
+      const input = document.getElementById('input');
+      const messages = document.getElementById('messages');
+      let prevMouseX;
+      let prevMouseY;
+      
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        if (input.value) {
+          socket.emit('chat message', input.value);
+          input.value = '';
+        }
+      });
+    
+      socket.on('chat message', (msg) => {
+        const item = document.createElement('li');
+        item.textContent = msg;
+        messages.appendChild(item);
+        window.scrollTo(0, document.body.scrollHeight);
+      });
+      
+      socket.on('drawing', (data) => {
+        fill(0);
+        ellipse(data.x, data.y, pincelSize, pincelSize);
+      });
+      
+      function setup() {
+        createCanvas(1920, 740);
+        
+        prevMouseX = mouseX;
+        prevMouseY = mouseY;
+      }
+      
+      function draw() {
+        if (mouseIsPressed && (mouseX !== prevMouseX || mouseY !== prevMouseY)) {
+          socket.emit('drawing', { x: mouseX, y: mouseY });
+          prevMouseX = mouseX;
+          prevMouseY = mouseY;
+        }
+      }
+      
+      
+      function getRange() {
+  const rango = document.querySelector("#brushSizeInput").value;
+  pincelSize = rango;
+  }
+
+    </script>
+  </body>
+</html>
